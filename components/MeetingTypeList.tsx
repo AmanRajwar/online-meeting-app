@@ -3,6 +3,7 @@
 import Image from "next/image"
 import HomeCard from "./HomeCard"
 import { useState } from "react"
+import MeetingModel from "./MeetingModel"
 
 const MeetingTypeList = () => {
     const [meetingState, setMeetingState] = useState<'isScheduleMeeting' | 'isJoiningMeeting' | 'isInstantMeeting' | undefined>()
@@ -33,7 +34,19 @@ const MeetingTypeList = () => {
                 title="View Recordings"
                 description="Meeting Recordings"
                 className="bg-yellow-1"
-                handleClick={() => router.push('/recordings')}
+                // handleClick={() => router.push('/recordings')}
+            />
+            <MeetingModel 
+                  isOpen={meetingState === 'isScheduleMeeting'}
+                  onClose={() => setMeetingState(undefined)}
+                  title="Meeting Created"
+                  handleClick={() => {
+                   
+                  }}
+                  image={'/icons/checked.svg'}
+                  buttonIcon="/icons/copy.svg"
+                  className="text-center"
+                  buttonText="Copy Meeting Link"
             />
         </section>
     )
