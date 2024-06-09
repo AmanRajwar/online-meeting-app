@@ -1,12 +1,63 @@
 'use client'
-
+import { useToast } from './ui/use-toast';
 import Image from "next/image"
 import HomeCard from "./HomeCard"
 import { useState } from "react"
 import MeetingModel from "./MeetingModel"
+import { useUser } from "@clerk/nextjs"
+import { Call, useStreamVideoClient } from "@stream-io/video-react-sdk"
+import { useRouter } from 'next/navigation';
+import Loader from './Loader';
 
 const MeetingTypeList = () => {
+    const router = useRouter();
     const [meetingState, setMeetingState] = useState<'isScheduleMeeting' | 'isJoiningMeeting' | 'isInstantMeeting' | undefined>()
+    const { user } = useUser();
+    const client = useStreamVideoClient();
+    const [values, setValues] = useState({
+        dateTime: new Date(),
+        description: '',
+        link: ''
+    })
+    const { toast } = useToast();
+
+    const [callDetail, setCallDetail] = useState<Call>();
+    const createMeeting = async () => {
+        if (!client || !user) return;
+        try {
+            if (!values.dateTime) {
+                toast({ title: 'Please select a date and time' });
+                return;
+            }
+            const id = crypto.randomUUID();
+            const call = client.call('default', id);
+            if (!call) throw new Error('Failed to create meeting');
+            const startsAt = values.dateTime.toISOString() || new Date(Date.now()).toISOString();
+            const description = values.description || 'Instant Meeting';
+            await call.getOrCreate({
+                data: {
+                    starts_at: startsAt,
+                    custom: {
+                        description,
+                    },
+                },
+            });
+            setCallDetail(call);
+            if (!values.description) {
+                router.push(`/meeting/${call.id}`);
+            }
+            toast({
+                title: 'Meeting Created',
+            });
+        } catch (error) {
+            console.error(error);
+            toast({ title: 'Failed to create Meeting' });
+        }
+    };
+
+
+    if (!client || !user) return <Loader />;
+
     return (
         <section className=" grid grid-cols-1 gap-5 md:grid-cols-5 xl:grid-cols-4">
             <HomeCard
@@ -34,19 +85,15 @@ const MeetingTypeList = () => {
                 title="View Recordings"
                 description="Meeting Recordings"
                 className="bg-yellow-1"
-                // handleClick={() => router.push('/recordings')}
+            // handleClick={() => router.push('/recordings')}
             />
-            <MeetingModel 
-                  isOpen={meetingState === 'isScheduleMeeting'}
-                  onClose={() => setMeetingState(undefined)}
-                  title="Meeting Created"
-                  handleClick={() => {
-                   
-                  }}
-                  image={'/icons/checked.svg'}
-                  buttonIcon="/icons/copy.svg"
-                  className="text-center"
-                  buttonText="Copy Meeting Link"
+            <MeetingModel
+                isOpen={meetingState === 'isInstantMeeting'}
+                onClose={() => setMeetingState(undefined)}
+                title="Start an Instant Meeting"
+                className="text-center"
+                buttonText="Start Meeting"
+                handleClick={createMeeting}
             />
         </section>
     )
